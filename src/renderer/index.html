@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <!--
+    img-src allows http(s) only because srcdoc iframes inherit this policy and the
+    user can opt in to remote images. Whether they actually load is decided by
+    the per-message iframe CSP and the main-process network gate.
+  -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: http:; font-src 'self' data:; frame-src 'self'; connect-src 'none'; media-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MailView</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="toolbar">
+    <button id="btn-open" class="btn" title="Open a message (Ctrl+O)">Open…</button>
+    <div class="file-info" id="file-info">No message loaded</div>
+    <div class="spacer"></div>
+    <span class="chip" id="remote-state" hidden></span>
+    <button id="btn-remote" class="btn btn-warn" hidden></button>
+    <button id="btn-attachments" class="btn btn-warn" hidden></button>
+  </header>
+
+  <main id="empty" class="empty">
+    <div class="dropzone">
+      <div class="dropzone-title">Drop a suspicious message here</div>
+      <div class="dropzone-sub">.eml · .emlx · .msg · .mht · .mhtml</div>
+      <p class="dropzone-note">Remote images, inline images and attachments stay blocked until you choose to load them. Scripts, forms and links in the message are always disabled.</p>
+      <button id="btn-open-empty" class="btn btn-primary">Open message…</button>
+      <div><button id="btn-about-empty" class="link-button">About MailView</button></div>
+    </div>
+  </main>
+
+  <main id="viewer" class="viewer" hidden>
+    <section class="summary">
+      <h1 id="subject"></h1>
+      <dl id="summary-fields"></dl>
+      <div class="auth" id="auth"></div>
+    </section>
+
+    <nav class="tabs" role="tablist">
+      <button class="tab active" data-tab="rendered">Message</button>
+      <button class="tab" data-tab="text">Plain text</button>
+      <button class="tab" data-tab="links">Links <span class="count" id="count-links"></span></button>
+      <button class="tab" data-tab="attachments">Attachments <span class="count" id="count-attachments"></span></button>
+      <button class="tab" data-tab="headers">Headers</button>
+      <button class="tab" data-tab="findings">Findings <span class="count" id="count-findings"></span></button>
+    </nav>
+
+    <section class="panel active" data-panel="rendered">
+      <div class="notice" id="blocked-notice" hidden></div>
+      <!-- sandbox="" : no scripts, no same-origin, no forms, no popups, no top navigation -->
+      <iframe id="frame" sandbox="" referrerpolicy="no-referrer" title="Message body"></iframe>
+    </section>
+    <section class="panel" data-panel="text"><pre id="plain" class="mono pre-wrap"></pre></section>
+    <section class="panel scroll" data-panel="links"><div id="links"></div></section>
+    <section class="panel scroll" data-panel="attachments"><div id="attachments"></div></section>
+    <section class="panel scroll" data-panel="headers"><div id="headers"></div></section>
+    <section class="panel scroll" data-panel="findings"><div id="findings"></div></section>
+  </main>
+
+  <div id="error" class="error" hidden></div>
+  <div id="drop-overlay" class="drop-overlay" hidden>Drop to open</div>
+
+  <dialog id="remote-dialog">
+    <h2>Load remote images?</h2>
+    <p>Remote images are often tracking pixels. Loading them tells the sender that this message was opened, and reveals your IP address and approximate location.</p>
+    <p>Consider doing this only from an isolated analysis network.</p>
+    <div class="dialog-actions">
+      <button class="btn" value="cancel" id="remote-cancel">Cancel</button>
+      <button class="btn btn-warn" value="load" id="remote-confirm">Load remote images</button>
+    </div>
+  </dialog>
+
+  <dialog id="text-dialog" class="wide">
+    <div class="dialog-head">
+      <h2 id="text-dialog-title"></h2>
+      <button class="btn" id="text-dialog-close">Close</button>
+    </div>
+    <pre id="text-dialog-body" class="mono pre-wrap"></pre>
+  </dialog>
+
+  <dialog id="about-dialog" class="about">
+    <img src="../../build/icon.png" alt="" class="about-icon" id="about-icon">
+    <h2 id="about-name">MailView</h2>
+    <div class="about-version" id="about-version"></div>
+    <p class="about-tagline">Safe previewer for suspected phishing email messages.</p>
+    <p class="about-copyright" id="about-copyright"></p>
+    <p class="muted small" id="about-license-line"></p>
+    <details class="about-license">
+      <summary>License text</summary>
+      <pre id="about-license-text" class="pre-wrap"></pre>
+    </details>
+    <p class="muted small">Includes open-source components (Electron, DOMPurify, mailparser, msgreader and others) used under their own licenses.</p>
+    <p class="muted small mono" id="about-runtime"></p>
+    <div class="dialog-actions">
+      <button class="btn btn-primary" id="about-close" autofocus>Close</button>
+    </div>
+  </dialog>
+
+  <script src="../../node_modules/dompurify/dist/purify.min.js"></script>
+  <script src="sanitize.js"></script>
+  <script src="renderer.js"></script>
+</body>
+</html>

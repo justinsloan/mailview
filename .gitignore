@@ -1,0 +1,45 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+out/
+*.AppImage
+*.deb
+*.rpm
+*.snap
+*.dmg
+*.exe
+*.blockmap
+
+# Claude Code / AI assistant files
+CLAUDE.md
+CLAUDE.local.md
+.claude/
+
+# Logs and debug output
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+builder-debug.yml
+
+# Environment and secrets
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Editor / OS
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
+Thumbs.db
+
+# Test output
+/shots/
+coverage/

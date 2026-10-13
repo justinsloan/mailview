@@ -1,0 +1,12 @@
+From: <Saved by Blink>
+Subject: Saved page
+MIME-Version: 1.0
+Content-Type: multipart/related; type="text/html"; boundary="----MultipartBoundary--x"
+
+------MultipartBoundary--x
+Content-Type: text/html
+Content-Transfer-Encoding: quoted-printable
+Content-Location: https://login.example-bank.test/
+
+<html><body><h2>Sign in</h2><img src=3D"https://tracker.test/p.gif"><a href=3D"https://evil.test/">https://bank.test</a><script>alert(1)</script></body></html>
+------MultipartBoundary--x--

