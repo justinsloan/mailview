@@ -17,7 +17,33 @@ const INLINE_IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/jpg', 'ima
 // webContents.id -> { msg, remoteAllowed }
 const windowState = new Map();
 
+// Chromium's OS-level sandbox is what contains a renderer exploit triggered by
+// a malicious message. Refuse to run if it has been switched off, for example
+// by the AppImage launcher on systems that block unprivileged user namespaces.
+// This must run before app.enableSandbox(), which hides --no-sandbox from
+// app.commandLine without actually re-enabling the sandbox. The raw argv is
+// checked too (Chromium accepts "--name", "-name" and "--name=value").
+const SANDBOX_DISABLING_SWITCHES = ['no-sandbox', 'disable-seccomp-filter-sandbox', 'disable-namespace-sandbox', 'disable-setuid-sandbox'];
+const argvSwitches = new Set();
+for (const arg of process.argv.slice(1)) {
+  if (arg === '--') break;
+  const m = /^--?([^=]+)/.exec(arg);
+  if (m) argvSwitches.add(m[1].toLowerCase());
+}
+const sandboxDisabledBy = SANDBOX_DISABLING_SWITCHES.filter((name) => app.commandLine.hasSwitch(name) || argvSwitches.has(name));
+
 app.enableSandbox();
+
+function refuseUnsandboxed() {
+  const message =
+    `MailView won't run with Chromium's sandbox disabled (--${sandboxDisabledBy.join(', --')}).\n\n` +
+    'The sandbox contains a malicious message if it exploits a browser bug, so MailView never runs without it.\n\n' +
+    "On Ubuntu 24.04 and later the AppImage can't use the sandbox. Install the .deb or .rpm package instead; " +
+    'it includes the AppArmor profile the sandbox needs.';
+  console.error(message);
+  dialog.showErrorBox('Sandbox disabled', message);
+  app.exit(1);
+}
 
 // --- Network gate ---------------------------------------------------------
 // Every request from the viewer goes through here. Remote requests are
@@ -119,12 +145,45 @@ function attachmentMeta(a) {
   };
 }
 
+// Launch arguments arrive as plain paths (terminal) or as URLs (file managers,
+// via the desktop entry's %U). Only local files are accepted: a URL is never
+// fetched, and a file:// URL with a host names a network share (on Windows,
+// opening one makes an SMB connection that can leak the user's credentials).
+function launchArgToSource(arg) {
+  // Require "scheme://" (or "file:") so names like "RE: Invoice.eml" stay paths.
+  if (!/^[a-z][a-z0-9+.-]+:\/\//i.test(arg) && !/^file:/i.test(arg)) return { path: path.resolve(arg) };
+  let url;
+  try {
+    url = new URL(arg);
+  } catch {
+    return { error: 'Not a valid URL.', label: arg };
+  }
+  if (url.protocol !== 'file:') {
+    return { error: `Only local files can be opened, not ${url.protocol} URLs.`, label: arg };
+  }
+  if (url.hostname && url.hostname.toLowerCase() !== 'localhost') {
+    return { error: `Refusing to open a file on a network host (${url.hostname}).`, label: arg };
+  }
+  try {
+    return { path: fileURLToPath(url) };
+  } catch (err) {
+    return { error: err.message, label: arg };
+  }
+}
+
 async function loadInto(win, source) {
   const wc = win.webContents;
   const pending = windowState.get(wc.id);
   if (pending) pending.loading = true;
   try {
-    const buf = source.buffer || (await fs.promises.readFile(source.path));
+    if (source.error) throw new Error(source.error);
+    let buf = source.buffer;
+    if (!buf) {
+      // Directories, FIFOs and device files are refused (a FIFO would hang the read).
+      const stat = await fs.promises.stat(source.path);
+      if (!stat.isFile()) throw new Error('Not a regular file.');
+      buf = await fs.promises.readFile(source.path);
+    }
     const name = source.name || path.basename(source.path);
     const msg = await parseMessage(buf, name);
     const analysis = analyzeMessage(msg);
@@ -133,7 +192,7 @@ async function loadInto(win, source) {
     wc.send('message-loaded', { message: publicMessage(msg), analysis });
   } catch (err) {
     windowState.set(wc.id, { msg: null, remoteAllowed: false });
-    wc.send('message-error', { file: source.name || source.path, error: err.message });
+    wc.send('message-error', { file: source.label || source.name || source.path, error: err.message });
   }
 }
 
@@ -343,12 +402,16 @@ app.on('open-file', (event, filePath) => {
 });
 
 app.whenReady().then(() => {
+  if (sandboxDisabledBy.length) {
+    refuseUnsandboxed();
+    return;
+  }
   installNetworkGate(session.fromPartition(PARTITION));
   buildMenu();
 
   const args = process.argv.slice(app.isPackaged ? 1 : 2).filter((a) => !a.startsWith('-') && a !== '.');
-  const files = [...pendingOpenFiles, ...args.map((a) => path.resolve(a))];
-  if (files.length) files.forEach((f) => createWindow({ path: f }));
+  const sources = [...pendingOpenFiles.map((f) => ({ path: f })), ...args.map(launchArgToSource)];
+  if (sources.length) sources.forEach((source) => createWindow(source));
   else createWindow();
 
   app.on('activate', () => {

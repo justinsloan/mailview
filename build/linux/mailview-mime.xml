@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- MIME types for message formats that shared-mime-info may not define.
+     message/rfc822 (.eml) and application/x-mimearchive (.mht) are standard
+     and are deliberately not redefined here. -->
+<mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+  <mime-type type="application/vnd.ms-outlook">
+    <comment>Outlook email message</comment>
+    <glob pattern="*.msg"/>
+  </mime-type>
+  <mime-type type="application/x-emlx">
+    <comment>Apple Mail email message</comment>
+    <glob pattern="*.emlx"/>
+  </mime-type>
+</mime-info>

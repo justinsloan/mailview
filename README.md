@@ -119,18 +119,41 @@ Each of these layers blocks remote content on its own:
                              app's own files. Referer/Cookie/Set-Cookie headers are stripped.
 ```
 
-Plus Electron hardening: `sandbox`, `contextIsolation`, no Node integration, all permissions denied, navigation / `window.open` / downloads / `<webview>` blocked, and an in-memory session (no disk cache).
+Plus Electron hardening: `sandbox`, `contextIsolation`, no Node integration, all permissions denied, navigation / `window.open` / downloads / `<webview>` blocked, an in-memory session (no disk cache), and a startup check that refuses to run if Chromium's OS sandbox has been disabled.
 
 ## Building
 
 ```sh
-npm run dist   # → dist/MailView-<version>.AppImage and dist/mailview-<version>.tar.gz
-npm run pack   # → dist/linux-unpacked/ (quick check)
+npm run dist   # all Linux packages (below)
+npm run pack   # → dist/linux-unpacked/ (quick check, no packages)
 ```
+
+| File | For |
+|---|---|
+| `dist/mailview_<version>_amd64.deb` | Debian, Ubuntu, Mint, Pop!_OS |
+| `dist/mailview-<version>.x86_64.rpm` | Fedora, RHEL, openSUSE |
+| `dist/MailView-<version>.AppImage` | Any distro, no install needed |
+| `dist/mailview-<version>.tar.gz` | Any distro, manual install |
+
+Building the `.rpm` requires `rpmbuild` on the build machine (`sudo apt install rpm` on Debian/Ubuntu). To build only some targets, list them: `npx electron-builder --linux AppImage deb tar.gz`.
 
 Packaged builds have these [Electron fuses](https://www.electronjs.org/docs/latest/tutorial/fuses) set: `RunAsNode` off, `NODE_OPTIONS` and `--inspect` flags ignored, and `OnlyLoadAppFromAsar` on.
 
-The build config in `package.json` currently targets Linux. Windows (`--win`) and macOS (`--mac`) builds need to be run on those platforms and signed there. A `.deb` target additionally needs `homepage` and an author email in `package.json`.
+The build config in `package.json` currently targets Linux. Windows (`--win`) and macOS (`--mac`) builds need to be run on those platforms and signed there.
+
+### Installing the Linux packages
+
+```sh
+sudo apt install ./mailview_1.0.0_amd64.deb      # Debian / Ubuntu
+sudo dnf install ./mailview-1.0.0.x86_64.rpm     # Fedora / RHEL
+```
+
+The packages install to `/opt/MailView`, add a `mailview` command and an app-menu entry, and on Ubuntu 24.04+ install an AppArmor profile so Chromium's sandbox works. They also register MailView under **Open With** for `.eml`, `.emlx`, `.msg`, `.mht` and `.mhtml` files. Installing MailView doesn't change an existing default app. If no other app handles one of these types, your desktop may open it with MailView. Remove it with `sudo apt remove mailview` or `sudo dnf remove mailview`.
+
+For the AppImage: `chmod +x MailView-1.0.0.AppImage && ./MailView-1.0.0.AppImage`. It needs FUSE 2 (`libfuse2t64` on Ubuntu 24.04+).
+
+> [!IMPORTANT]
+> MailView refuses to start if Chromium's sandbox is disabled (`--no-sandbox` or similar flags), because the sandbox is what contains a malicious message that exploits a browser bug. On distros that block unprivileged user namespaces, including **Ubuntu 24.04 and later**, the AppImage launcher turns the sandbox off, so MailView won't run from the AppImage there. Use the `.deb` or `.rpm` instead; they install the AppArmor profile the sandbox needs.
 
 ## Development
 

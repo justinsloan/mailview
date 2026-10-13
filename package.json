@@ -59,14 +59,37 @@
     "linux": {
       "target": [
         "AppImage",
+        "deb",
+        "rpm",
         "tar.gz"
       ],
       "category": "Network;Email;Security",
       "icon": "build/icon.png",
       "synopsis": "Safe previewer for suspected phishing emails",
-      "syncDesktopName": true
+      "syncDesktopName": true,
+      "maintainer": "Justin Sloan <10264528+justinsloan@users.noreply.github.com>",
+      "vendor": "Justin Sloan",
+      "mimeTypes": [
+        "message/rfc822",
+        "application/x-mimearchive",
+        "application/vnd.ms-outlook",
+        "application/x-emlx"
+      ]
     },
-    "copyright": "Copyright © 2026 Justin Sloan"
+    "copyright": "Copyright © 2026 Justin Sloan",
+    "deb": {
+      "fpm": [
+        "build/linux/mailview-mime.xml=/usr/share/mime/packages/mailview.xml"
+      ]
+    },
+    "rpm": {
+      "fpm": [
+        "build/linux/mailview-mime.xml=/usr/share/mime/packages/mailview.xml"
+      ]
+    },
+    "appImage": {
+      "executableArgs": []
+    }
   },
   "desktopName": "mailview.desktop"
 }
