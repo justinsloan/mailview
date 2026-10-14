@@ -99,7 +99,12 @@ jobs:
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
-          if [ -n "$CSC_LINK" ]; then
+          # Unset secrets are passed as empty strings, which electron-builder
+          # would treat as a certificate path.
+          for v in CSC_LINK CSC_KEY_PASSWORD APPLE_ID APPLE_APP_SPECIFIC_PASSWORD APPLE_TEAM_ID; do
+            [ -n "${!v}" ] || unset "$v"
+          done
+          if [ -n "${CSC_LINK:-}" ]; then
             npx electron-builder --mac --publish never
           else
             npx electron-builder --mac --publish never -c.mac.identity=-
