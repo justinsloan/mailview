@@ -57,5 +57,8 @@ app.whenReady().then(async () => {
   results.remoteDocCss = remoteDoc.match(/url\([^)]*\)|background="[^"]*"/g);
 
   console.log(JSON.stringify(results, null, 2));
-  app.exit(0);
+  const failed = Object.entries(results.srcdocHas).filter(([, found]) => found).map(([s]) => `srcdoc contains ${s}`);
+  if (!results.cidResolved) failed.push('cid: image not resolved after loading attachments');
+  if (failed.length) console.error(`FAILED:\n  ${failed.join('\n  ')}`);
+  app.exit(failed.length ? 1 : 0);
 });

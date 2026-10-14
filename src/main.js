@@ -34,12 +34,18 @@ const sandboxDisabledBy = SANDBOX_DISABLING_SWITCHES.filter((name) => app.comman
 
 app.enableSandbox();
 
+// Windows: match the installer's AppUserModelID so the taskbar groups windows
+// under the pinned/Start menu shortcut.
+if (process.platform === 'win32') app.setAppUserModelId('local.mailview.viewer');
+
 function refuseUnsandboxed() {
   const message =
     `MailView won't run with Chromium's sandbox disabled (--${sandboxDisabledBy.join(', --')}).\n\n` +
-    'The sandbox contains a malicious message if it exploits a browser bug, so MailView never runs without it.\n\n' +
-    "On Ubuntu 24.04 and later the AppImage can't use the sandbox. Install the .deb or .rpm package instead; " +
-    'it includes the AppArmor profile the sandbox needs.';
+    'The sandbox contains a malicious message if it exploits a browser bug, so MailView never runs without it.' +
+    (process.platform === 'linux'
+      ? "\n\nOn Ubuntu 24.04 and later the AppImage can't use the sandbox. Install the .deb or .rpm package instead; " +
+        'it includes the AppArmor profile the sandbox needs.'
+      : '\n\nRemove the flag from the shortcut or command line that started MailView.');
   console.error(message);
   dialog.showErrorBox('Sandbox disabled', message);
   app.exit(1);
@@ -51,10 +57,14 @@ function refuseUnsandboxed() {
 // then only image requests are let through. file:// is limited to the app's
 // own files so email content can't reach local or UNC (\\host\share) paths.
 
+// Windows paths are case-insensitive, so compare them that way there.
+const foldCase = process.platform === 'win32' ? (p) => p.toLowerCase() : (p) => p;
+const APP_ROOT_KEY = foldCase(APP_ROOT);
+
 function isInsideApp(fileUrl) {
   try {
-    const p = path.resolve(fileURLToPath(fileUrl));
-    return p === APP_ROOT || p.startsWith(APP_ROOT + path.sep);
+    const p = foldCase(path.resolve(fileURLToPath(fileUrl)));
+    return p === APP_ROOT_KEY || p.startsWith(APP_ROOT_KEY + path.sep);
   } catch {
     return false;
   }
@@ -106,6 +116,12 @@ function installNetworkGate(ses) {
     }
     callback({ responseHeaders: headers });
   });
+
+  // Never send Windows (NTLM/Kerberos) credentials automatically. By default
+  // Chromium does so for any host Windows puts in the Local Intranet zone,
+  // such as a dotless name in an opted-in remote image URL. An allowlist that
+  // matches no real host turns that off.
+  ses.allowNTLMCredentialsForDomains('mailview.invalid');
 
   ses.setPermissionRequestHandler((_wc, _permission, callback) => callback(false));
   ses.setPermissionCheckHandler(() => false);
@@ -273,8 +289,22 @@ function safeFileName(name) {
   const cleaned = (name || 'attachment')
     .replace(/[\u0000-\u001f\u007f‪-‮⁦-⁩]/g, '')
     .replace(/[\\/:*?"<>|]/g, '_')
-    .trim();
-  return cleaned || 'attachment';
+    .trim()
+    // Windows silently strips trailing dots and spaces; drop them so the save dialog shows the real name.
+    .replace(/[. ]+$/, '');
+  if (!cleaned) return 'attachment';
+  // Reserved device names (CON, NUL, COM1...) can't be used as file names on Windows.
+  return /^(con|prn|aux|nul|com[0-9¹²³]|lpt[0-9¹²³])(\.|$)/i.test(cleaned) ? `_${cleaned}` : cleaned;
+}
+
+// Windows: tag a saved attachment as downloaded from the internet ("Mark of
+// the Web"), so SmartScreen warns before it runs and Office opens it in
+// Protected View. Ignored on drives without alternate data streams (FAT, some shares).
+async function markOfTheWeb(filePath) {
+  if (process.platform !== 'win32') return;
+  try {
+    await fs.promises.writeFile(`${filePath}:Zone.Identifier`, '[ZoneTransfer]\r\nZoneId=3\r\n');
+  } catch {}
 }
 
 handle('open-dialog', ({ win }) => openFileDialog(win));
@@ -316,6 +346,7 @@ handle('save-attachment', async ({ win, state }, id) => {
   });
   if (result.canceled || !result.filePath) return false;
   await fs.promises.writeFile(result.filePath, att.content, { mode: 0o600 });
+  await markOfTheWeb(result.filePath);
   return true;
 });
 

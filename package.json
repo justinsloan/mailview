@@ -7,7 +7,9 @@
     "start": "electron .",
     "test:parse": "node scripts/parse-check.js",
     "dist": "electron-builder --linux",
-    "pack": "electron-builder --linux --dir"
+    "pack": "electron-builder --linux --dir",
+    "dist:win": "electron-builder --win",
+    "pack:win": "electron-builder --win --dir"
   },
   "license": "MIT",
   "repository": {
@@ -54,7 +56,8 @@
       "enableCookieEncryption": true,
       "enableNodeOptionsEnvironmentVariable": false,
       "enableNodeCliInspectArguments": false,
-      "onlyLoadAppFromAsar": true
+      "onlyLoadAppFromAsar": true,
+      "enableEmbeddedAsarIntegrityValidation": true
     },
     "linux": {
       "target": [
@@ -76,6 +79,26 @@
         "application/x-emlx"
       ]
     },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
+      "icon": "build/icon.png",
+      "artifactName": "MailView-${version}-win-${arch}.${ext}"
+    },
     "copyright": "Copyright © 2026 Justin Sloan",
     "deb": {
       "fpm": [
@@ -89,6 +112,20 @@
     },
     "appImage": {
       "executableArgs": []
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "buildUniversalInstaller": false,
+      "allowElevation": true,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "MailView",
+      "deleteAppDataOnUninstall": true,
+      "include": "build/win/installer.nsh",
+      "license": "LICENSE",
+      "artifactName": "MailView-Setup-${version}-${arch}.${ext}"
     }
   },
   "desktopName": "mailview.desktop"

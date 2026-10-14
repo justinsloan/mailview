@@ -13,7 +13,7 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License"></a>
   <img src="https://img.shields.io/badge/version-1.0.0-informational.svg" alt="Version 1.0.0">
   <img src="https://img.shields.io/badge/electron-44-47848F.svg?logo=electron&logoColor=white" alt="Electron 44">
-  <img src="https://img.shields.io/badge/platform-linux-lightgrey.svg?logo=linux&logoColor=white" alt="Platform: Linux">
+  <img src="https://img.shields.io/badge/platform-linux%20%7C%20windows-lightgrey.svg" alt="Platform: Linux | Windows">
 </p>
 
 <p align="center">
@@ -63,7 +63,12 @@ MailView shows the message with **everything risky blocked by default**. You cho
 
 ### Download
 
-Linux `.deb` and `.rpm` packages are on the [Releases page](https://github.com/justinsloan/mailview/releases/latest). See [Installing the Linux packages](#installing-the-linux-packages). Windows and macOS builds aren't available yet; on those platforms, [run from source](#run-from-source).
+Builds are on the [Releases page](https://github.com/justinsloan/mailview/releases/latest):
+
+- **Windows:** `MailView-Setup-<version>-x64.exe` (or `-arm64.exe` for ARM PCs). See [Installing on Windows](#installing-on-windows).
+- **Linux:** `.deb` and `.rpm` packages. See [Installing the Linux packages](#installing-the-linux-packages).
+
+macOS builds aren't available yet; on macOS, [run from source](#run-from-source).
 
 ### Run from source
 
@@ -121,11 +126,15 @@ Each of these layers blocks remote content on its own:
 
 Plus Electron hardening: `sandbox`, `contextIsolation`, no Node integration, all permissions denied, navigation / `window.open` / downloads / `<webview>` blocked, an in-memory session (no disk cache), and a startup check that refuses to run if Chromium's OS sandbox has been disabled.
 
+On Windows, MailView also never sends your Windows (NTLM/Kerberos) credentials automatically, even to intranet hosts, and saved attachments get the *Mark of the Web* so SmartScreen and Office Protected View treat them as downloaded from the internet.
+
 ## Building
 
 ```sh
-npm run dist   # all Linux packages (below)
-npm run pack   # → dist/linux-unpacked/ (quick check, no packages)
+npm run dist       # all Linux packages (below)
+npm run pack       # → dist/linux-unpacked/ (quick check, no packages)
+npm run dist:win   # Windows installers and zips (below)
+npm run pack:win   # → dist/win-unpacked/ (quick check, no installer)
 ```
 
 | File | For |
@@ -139,7 +148,27 @@ Building the `.rpm` requires `rpmbuild` on the build machine (`sudo apt install 
 
 Packaged builds have these [Electron fuses](https://www.electronjs.org/docs/latest/tutorial/fuses) set: `RunAsNode` off, `NODE_OPTIONS` and `--inspect` flags ignored, and `OnlyLoadAppFromAsar` on.
 
-The build config in `package.json` currently targets Linux. Windows (`--win`) and macOS (`--mac`) builds need to be run on those platforms and signed there.
+| File | For |
+|---|---|
+| `dist/MailView-Setup-<version>-x64.exe` | Windows 10/11 installer (Intel/AMD) |
+| `dist/MailView-Setup-<version>-arm64.exe` | Windows 11 installer (ARM) |
+| `dist/MailView-<version>-win-x64.zip` | Windows, no install needed (Intel/AMD) |
+| `dist/MailView-<version>-win-arm64.zip` | Windows, no install needed (ARM) |
+
+Windows builds are best made on Windows. They can be cross-built on Linux, but the installer step needs Wine (`sudo apt install wine64 wine32:i386` on Debian/Ubuntu). The [Windows build workflow](.github/workflows/windows.yml) builds them on a Windows runner, runs the smoke test there, and attaches them to the release when a `v*` tag is pushed. To sign them, set the `WIN_CSC_LINK` (certificate as base64 or a URL) and `WIN_CSC_KEY_PASSWORD` repository secrets.
+
+Packaged Windows builds also have the `EnableEmbeddedAsarIntegrityValidation` fuse set, so MailView refuses to start if its `app.asar` has been modified.
+
+macOS (`--mac`) builds need to be run on macOS and signed there.
+
+### Installing on Windows
+
+Run `MailView-Setup-<version>-x64.exe`. It installs for your account only by default (no admin rights needed); choose **Anyone who uses this computer** to install for all users. It adds Start menu and desktop shortcuts and registers MailView under **Open with** for `.eml`, `.emlx`, `.msg`, `.mht` and `.mhtml` files. It doesn't change your default app for any of them: to make MailView the default, right-click a file, choose **Open with → Choose another app**, pick MailView and select **Always**. Uninstall from **Settings → Apps**; your other apps' file associations are left as they were.
+
+The zip needs no install: extract it and run `MailView.exe`.
+
+> [!NOTE]
+> Release builds aren't code-signed yet, so Windows SmartScreen may show **Windows protected your PC**. Check the SHA-256 against `SHA256SUMS-windows.txt` on the release, then choose **More info → Run anyway**.
 
 ### Installing the Linux packages
 
