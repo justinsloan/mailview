@@ -50,7 +50,7 @@ jobs:
             Out-File -Encoding ascii dist/SHA256SUMS-windows.txt
           Get-Content dist/SHA256SUMS-windows.txt
 
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v7
         with:
           name: mailview-windows
           path: |
@@ -67,7 +67,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v8
         with:
           name: mailview-windows
           path: dist
