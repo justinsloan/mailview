@@ -13,7 +13,7 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License"></a>
   <img src="https://img.shields.io/badge/version-1.0.0-informational.svg" alt="Version 1.0.0">
   <img src="https://img.shields.io/badge/electron-44-47848F.svg?logo=electron&logoColor=white" alt="Electron 44">
-  <img src="https://img.shields.io/badge/platform-linux%20%7C%20macOS%20%7C%20windows-lightgrey.svg" alt="Platforms">
+  <img src="https://img.shields.io/badge/platform-linux-lightgrey.svg?logo=linux&logoColor=white" alt="Platform: Linux">
 </p>
 
 <p align="center">
@@ -63,7 +63,7 @@ MailView shows the message with **everything risky blocked by default**. You cho
 
 ### Download
 
-Build from source for now. See [Building](#building).
+Linux `.deb` and `.rpm` packages are on the [Releases page](https://github.com/justinsloan/mailview/releases/latest). See [Installing the Linux packages](#installing-the-linux-packages). Windows and macOS builds aren't available yet; on those platforms, [run from source](#run-from-source).
 
 ### Run from source
 
