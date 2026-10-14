@@ -6,6 +6,7 @@ const { pathToFileURL, fileURLToPath } = require('url');
 const { app, BrowserWindow, Menu, clipboard, dialog, ipcMain, session } = require('electron');
 const { parseMessage } = require('./parser');
 const { analyzeMessage } = require('./analysis');
+const { markAsDownloaded } = require('./quarantine');
 
 const APP_ROOT = path.resolve(__dirname, '..');
 const INDEX_URL = pathToFileURL(path.join(__dirname, 'renderer', 'index.html')).href;
@@ -297,16 +298,6 @@ function safeFileName(name) {
   return /^(con|prn|aux|nul|com[0-9¹²³]|lpt[0-9¹²³])(\.|$)/i.test(cleaned) ? `_${cleaned}` : cleaned;
 }
 
-// Windows: tag a saved attachment as downloaded from the internet ("Mark of
-// the Web"), so SmartScreen warns before it runs and Office opens it in
-// Protected View. Ignored on drives without alternate data streams (FAT, some shares).
-async function markOfTheWeb(filePath) {
-  if (process.platform !== 'win32') return;
-  try {
-    await fs.promises.writeFile(`${filePath}:Zone.Identifier`, '[ZoneTransfer]\r\nZoneId=3\r\n');
-  } catch {}
-}
-
 handle('open-dialog', ({ win }) => openFileDialog(win));
 
 handle('open-path', async ({ win, state }, filePath) => {
@@ -346,7 +337,7 @@ handle('save-attachment', async ({ win, state }, id) => {
   });
   if (result.canceled || !result.filePath) return false;
   await fs.promises.writeFile(result.filePath, att.content, { mode: 0o600 });
-  await markOfTheWeb(result.filePath);
+  await markAsDownloaded(result.filePath);
   return true;
 });
 

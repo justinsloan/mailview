@@ -13,7 +13,7 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License"></a>
   <img src="https://img.shields.io/badge/version-1.0.0-informational.svg" alt="Version 1.0.0">
   <img src="https://img.shields.io/badge/electron-44-47848F.svg?logo=electron&logoColor=white" alt="Electron 44">
-  <img src="https://img.shields.io/badge/platform-linux%20%7C%20windows-lightgrey.svg" alt="Platform: Linux | Windows">
+  <img src="https://img.shields.io/badge/platform-linux%20%7C%20windows%20%7C%20macOS-lightgrey.svg" alt="Platform: Linux | Windows | macOS">
 </p>
 
 <p align="center">
@@ -66,9 +66,8 @@ MailView shows the message with **everything risky blocked by default**. You cho
 Builds are on the [Releases page](https://github.com/justinsloan/mailview/releases/latest):
 
 - **Windows:** `MailView-Setup-<version>-x64.exe` (or `-arm64.exe` for ARM PCs). See [Installing on Windows](#installing-on-windows).
+- **macOS:** `MailView-<version>-mac-arm64.dmg` for Apple silicon (M1 and later), or `-mac-x64.dmg` for Intel Macs. See [Installing on macOS](#installing-on-macos).
 - **Linux:** `.deb` and `.rpm` packages. See [Installing the Linux packages](#installing-the-linux-packages).
-
-macOS builds aren't available yet; on macOS, [run from source](#run-from-source).
 
 ### Run from source
 
@@ -126,7 +125,7 @@ Each of these layers blocks remote content on its own:
 
 Plus Electron hardening: `sandbox`, `contextIsolation`, no Node integration, all permissions denied, navigation / `window.open` / downloads / `<webview>` blocked, an in-memory session (no disk cache), and a startup check that refuses to run if Chromium's OS sandbox has been disabled.
 
-On Windows, MailView also never sends your Windows (NTLM/Kerberos) credentials automatically, even to intranet hosts, and saved attachments get the *Mark of the Web* so SmartScreen and Office Protected View treat them as downloaded from the internet.
+MailView never sends your Windows or Kerberos (NTLM/Negotiate) credentials automatically, even to intranet hosts. Saved attachments are marked as downloaded from the internet: on Windows they get the *Mark of the Web*, so SmartScreen and Office Protected View apply, and on macOS they're quarantined, so Gatekeeper checks them before they open.
 
 ## Building
 
@@ -135,6 +134,8 @@ npm run dist       # all Linux packages (below)
 npm run pack       # → dist/linux-unpacked/ (quick check, no packages)
 npm run dist:win   # Windows installers and zips (below)
 npm run pack:win   # → dist/win-unpacked/ (quick check, no installer)
+npm run dist:mac   # macOS disk images and zips (below; run on a Mac)
+npm run pack:mac   # → dist/mac-arm64/MailView.app (quick check)
 ```
 
 | File | For |
@@ -154,12 +155,21 @@ Packaged builds have these [Electron fuses](https://www.electronjs.org/docs/late
 | `dist/MailView-Setup-<version>-arm64.exe` | Windows 11 installer (ARM) |
 | `dist/MailView-<version>-win-x64.zip` | Windows, no install needed (Intel/AMD) |
 | `dist/MailView-<version>-win-arm64.zip` | Windows, no install needed (ARM) |
+| `dist/MailView-<version>-mac-arm64.dmg` | macOS, Apple silicon |
+| `dist/MailView-<version>-mac-x64.dmg` | macOS, Intel |
+| `dist/MailView-<version>-mac-arm64.zip` / `-mac-x64.zip` | macOS, the app without a disk image |
 
-Windows builds are best made on Windows. They can be cross-built on Linux, but the installer step needs Wine (`sudo apt install wine64 wine32:i386` on Debian/Ubuntu). The [Windows build workflow](.github/workflows/windows.yml) builds them on a Windows runner, runs the smoke test there, and attaches them to the release when a `v*` tag is pushed. To sign them, set the `WIN_CSC_LINK` (certificate as base64 or a URL) and `WIN_CSC_KEY_PASSWORD` repository secrets.
+Windows builds are best made on Windows. They can be cross-built on Linux, but the installer step needs Wine (`sudo apt install wine64 wine32:i386` on Debian/Ubuntu). macOS builds must be made on a Mac: only macOS can create the `.dmg` and sign the app, and Apple silicon Macs won't run an unsigned one. Without a Developer ID certificate, `npm run dist:mac` skips signing; use `npx electron-builder --mac -c.mac.identity=-` for an ad-hoc signed build.
 
-Packaged Windows builds also have the `EnableEmbeddedAsarIntegrityValidation` fuse set, so MailView refuses to start if its `app.asar` has been modified.
+The [build workflow](.github/workflows/build.yml) builds both on GitHub's Windows and macOS runners. It runs the smoke test and launches the packaged app on each, and attaches the builds to the release when a `v*` tag is pushed. Builds are unsigned (Windows) or ad-hoc signed (macOS) unless you set repository secrets:
 
-macOS (`--mac`) builds need to be run on macOS and signed there.
+| Secrets | Effect |
+|---|---|
+| `WIN_CSC_LINK`, `WIN_CSC_KEY_PASSWORD` | Sign the Windows builds (certificate as base64 or a URL) |
+| `MAC_CSC_LINK`, `MAC_CSC_KEY_PASSWORD` | Sign the macOS builds with a Developer ID Application certificate |
+| `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID` | Also notarize the macOS builds, so Gatekeeper opens them without a warning |
+
+Packaged Windows and macOS builds also have the `EnableEmbeddedAsarIntegrityValidation` fuse set, so MailView refuses to start if its `app.asar` has been modified. macOS builds use the hardened runtime.
 
 ### Installing on Windows
 
@@ -169,6 +179,13 @@ The zip needs no install: extract it and run `MailView.exe`.
 
 > [!NOTE]
 > Release builds aren't code-signed yet, so Windows SmartScreen may show **Windows protected your PC**. Check the SHA-256 against `SHA256SUMS-windows.txt` on the release, then choose **More info → Run anyway**.
+
+### Installing on macOS
+
+Open the `.dmg` and drag MailView to Applications. MailView appears under **Open With** for `.eml`, `.emlx`, `.msg`, `.mht` and `.mhtml` files, but it doesn't take over your default app (usually Mail or Outlook). To make it the default, select a file, choose **File → Get Info**, pick MailView under **Open with** and click **Change All…**.
+
+> [!NOTE]
+> Release builds aren't signed with an Apple Developer ID or notarized yet, so the first time you open MailView, macOS says it can't verify the app. Check the SHA-256 against `SHA256SUMS-mac.txt` on the release, then go to **System Settings → Privacy & Security**, scroll down and click **Open Anyway** next to the message about MailView.
 
 ### Installing the Linux packages
 
@@ -192,13 +209,14 @@ src/
 ├── preload.js         Minimal contextBridge API
 ├── parser.js          .eml / .emlx / .msg / .mht → normalized message
 ├── analysis.js        Header and attachment heuristics, envelope-from vs Reply-To
+├── quarantine.js      Marks saved attachments as downloaded (Windows, macOS)
 └── renderer/
     ├── index.html     UI shell and CSP
     ├── sanitize.js    DOMPurify config, link/image rewriting, iframe CSP
     ├── renderer.js    UI logic and link heuristics
     └── styles.css     Light/dark theme
 samples/               Synthetic phishing messages for testing
-scripts/               Parser check and Electron smoke test
+scripts/               Parser check, download-mark check and Electron smoke test
 ```
 
 ```sh

@@ -9,7 +9,9 @@
     "dist": "electron-builder --linux",
     "pack": "electron-builder --linux --dir",
     "dist:win": "electron-builder --win",
-    "pack:win": "electron-builder --win --dir"
+    "pack:win": "electron-builder --win --dir",
+    "dist:mac": "electron-builder --mac",
+    "pack:mac": "electron-builder --mac --dir"
   },
   "license": "MIT",
   "repository": {
@@ -98,6 +100,42 @@
       ],
       "icon": "build/icon.png",
       "artifactName": "MailView-${version}-win-${arch}.${ext}"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.png",
+      "category": "public.app-category.utilities",
+      "hardenedRuntime": true,
+      "artifactName": "MailView-${version}-mac-${arch}.${ext}",
+      "fileAssociations": [
+        {
+          "ext": [
+            "eml",
+            "emlx",
+            "msg",
+            "mht",
+            "mhtml"
+          ],
+          "name": "Email message",
+          "role": "Viewer",
+          "rank": "Alternate"
+        }
+      ]
     },
     "copyright": "Copyright © 2026 Justin Sloan",
     "deb": {
